@@ -81,6 +81,7 @@ class Bot:
             )
         elif index == "apitable":
             self.loader = APITableDatasheetLoader(
+                hostname= os.environ["APITABLE_HOSTNAME"],
                 access_token = os.environ["APITABLE_ACCESS_TOKEN"],
                 datasheet_id = os.environ["APITABLE_DATASHEET_ID"],
                 view_id = os.environ["APITABLE_VIEW_ID"]

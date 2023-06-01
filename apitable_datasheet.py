@@ -1,5 +1,4 @@
-"""APITable Datasheet loader for langchain"""
-import json
+"""APITable Datasheet loader for LangChain"""
 import requests
 from typing import Any, List
 
@@ -33,18 +32,21 @@ class APITableDatasheetLoader(BaseLoader):
         access_token: str,
         datasheet_id: str,
         view_id: str,
-        cell_format: str | None = None,
+        cell_format: str | None = "string",
+        hostname: str | None = "apitable.com",
     ):
         """Initialize with access token, datasheet_id, and viewId."""
         self.access_token = access_token
         self.datasheet_id = datasheet_id
         self.view_id = view_id
-        self.cell_format = "string" if cell_format is None else cell_format
+        self.cell_format = cell_format
+        self.hostname = hostname
 
     def _construct_api_url(self, page_num: int) -> str:
         api_url = (
-            "https://api.vika.cn/fusion/v1/datasheets/%s/records?viewId=%s&fieldKey=name&cellFormat=%s&pageNum=%d"
+            "https://api.%s/fusion/v1/datasheets/%s/records?viewId=%s&fieldKey=name&cellFormat=%s&pageNum=%d"
             % (
+                self.hostname,
                 self.datasheet_id,
                 self.view_id,
                 self.cell_format,
@@ -62,6 +64,11 @@ class APITableDatasheetLoader(BaseLoader):
         while True:
             response = requests.get(self._construct_api_url(page_num), headers=headers)
             data = response.json()
+
+            if (response.status_code != 200) or (not data['success']):
+                print("Request error", data)
+                break
+            
             records = data['data']['records']
             totals = data['data']['total']
 
@@ -85,7 +92,7 @@ class APITableDatasheetLoader(BaseLoader):
         
         for i, record in enumerate(records):
             content = _stringify_dict(record["fields"])
-            source = f"https://vika.cn/workbench/{self.datasheet_id}/{self.view_id}/{record['recordId']}"
+            source = f"https://{self.hostname}/workbench/{self.datasheet_id}/{self.view_id}/{record['recordId']}"
             metadata = {"source": source, "recordId": record["recordId"]}
             doc = Document(page_content=content, metadata=metadata)
             docs.append(doc)
