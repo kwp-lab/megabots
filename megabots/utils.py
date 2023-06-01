@@ -45,11 +45,16 @@ def create_api(bot: Bot, version: str = "0.0.1"):
 def create_interface(bot_instance: Bot, markdown: str = ""):
     with gr.Blocks() as interface:
         gr.Markdown(markdown)
-        chatbot = gr.Chatbot([], elem_id="chatbot").style(height=450)
-        msg = gr.Textbox(
-            show_label=False,
-            placeholder="Enter text and press enter",
-        ).style(container=False)
+        
+        with gr.Row():
+            with gr.Column():
+                chatbot = gr.Chatbot(label="vika维格云客服助手", elem_id="chatbot").style(height=450)
+                msg = gr.Textbox(
+                    show_label=False,
+                    placeholder="Enter text and press enter",
+                ).style(container=False)
+
+            output = gr.JSON(label="语料")
 
         def user(user_message, history):
             return "", history + [[user_message, None]]
@@ -59,9 +64,13 @@ def create_interface(bot_instance: Bot, markdown: str = ""):
             response = bot_instance.ask(history[-1][0])
             history[-1][1] = response
             return history
+        
+        def print_dataset(dataset):
+            return bot_instance.similarity_search_results
 
         msg.submit(user, [msg, chatbot], [msg, chatbot], queue=False).then(
             bot, chatbot, chatbot
-        )
+        ).then(print_dataset, output, output)
+        
 
     return interface

@@ -14,7 +14,7 @@ from megabots.prompt import QA_MEMORY_PROMPT
 from megabots.vectorstore import VectorStore
 from megabots.memory import Memory
 import megabots
-
+from apitable_datasheet import APITableDatasheetLoader
 
 class Bot:
     def __init__(
@@ -30,7 +30,7 @@ class Bot:
     ):
         self.vectorstore = vectorstore
         self.memory = memory
-        self.prompt = prompt or QA_MEMORY_PROMPT if self.memory else QA_PROMPT
+        self.prompt = prompt or (QA_MEMORY_PROMPT if self.memory else QA_PROMPT)
         self.select_model(model, temperature)
         self.create_loader(index)
         self.load_or_create_index(index, vectorstore)
@@ -79,7 +79,17 @@ class Bot:
             Either provide a valid path to a pickle file or a directory.               
             """
             )
-        self.loader = DirectoryLoader(index, recursive=True)
+        elif index == "apitable":
+            self.loader = APITableDatasheetLoader(
+                access_token = os.environ["APITABLE_ACCESS_TOKEN"],
+                datasheet_id = os.environ["APITABLE_DATASHEET_ID"],
+                view_id = os.environ["APITABLE_VIEW_ID"]
+            )
+        else:
+            self.loader = DirectoryLoader(
+                index, 
+                recursive=True
+            )
 
     def load_or_create_index(self, index: str, vectorstore: VectorStore | None = None):
         # Load an existing index from disk or create a new one if not available
@@ -97,12 +107,24 @@ class Bot:
             with open(index, "rb") as f:
                 self.search_index = pickle.load(f)
             return
+        
+        # Is APITable data
+        if index is not None and "apitable" in index:
+            print("Creating index...")
+            docs = self.loader.load_and_split()
+
+            self.search_index = FAISS.from_documents(
+                docs, OpenAIEmbeddings()
+            )
+            return
 
         # Is directory
         if index is not None and os.path.isdir(index):
             print("Creating index...")
+            docs = self.loader.load_and_split()
+
             self.search_index = FAISS.from_documents(
-                self.loader.load_and_split(), OpenAIEmbeddings()
+                docs, OpenAIEmbeddings()
             )
             return
 
@@ -120,7 +142,8 @@ class Bot:
 
     def ask(self, question: str, k=1) -> str:
         # Retrieve the answer to the given question and return it
-        input_documents = self.search_index.similarity_search(question, k=k)
+        input_documents = self.search_index.similarity_search(question, k=k)  
+        self.similarity_search_results = input_documents
         answer = self.chain.run(input_documents=input_documents, question=question)
         return answer
 
@@ -149,7 +172,7 @@ def bot(
     memory: str | Memory | None = None,
     vectorstore: str | VectorStore | None = None,
     verbose: bool = False,
-    temperature: int = 0,
+    temperature: float = 0,
 ) -> Bot:
     """Instanciate a bot based on the provided task. Each supported tasks has it's own default sane defaults.
 
