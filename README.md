@@ -272,6 +272,16 @@ sequenceDiagram
 
 ```
 
+## Local Development
+
+```bash
+# install dependencies
+> pip install -r requirements.txt
+
+# Chatbot start
+> py app.py
+```
+
 ## How to contribute?
 
 We welcome any suggestions, problem reports, and contributions!
