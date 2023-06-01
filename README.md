@@ -278,6 +278,10 @@ sequenceDiagram
 # install dependencies
 > pip install -r requirements.txt
 
+# fill environment variables
+> mv .env.example .env
+> vi .env
+
 # Chatbot start
 > py app.py
 ```
