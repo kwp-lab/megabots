@@ -34,6 +34,7 @@ class APITableDatasheetLoader(BaseLoader):
         view_id: str,
         cell_format: str | None = "string",
         hostname: str | None = "apitable.com",
+        verbose: bool | None = False
     ):
         """Initialize with access token, datasheet_id, and viewId."""
         self.access_token = access_token
@@ -41,6 +42,7 @@ class APITableDatasheetLoader(BaseLoader):
         self.view_id = view_id
         self.cell_format = cell_format
         self.hostname = hostname
+        self.verbose = verbose # Print all records to stdout if True
 
     def _construct_api_url(self, page_num: int) -> str:
         api_url = (
@@ -83,6 +85,12 @@ class APITableDatasheetLoader(BaseLoader):
             print("retrieved %s rows of records..." % (total_of_retrieved))
 
         print("Successfully retrieved %s rows of records" % (total_of_retrieved))
+
+        if self.verbose:
+            print("Printing all records:")
+            for i, record in enumerate(all_records):
+                print(i, record)
+
         return all_records
 
     def load(self) -> List[Document]:

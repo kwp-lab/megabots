@@ -1,6 +1,7 @@
 from typing import Any
 from langchain.llms import OpenAI
 from langchain.chat_models import ChatOpenAI
+from langchain.chains import LLMChain
 from langchain.embeddings import OpenAIEmbeddings
 from langchain.chains.qa_with_sources import load_qa_with_sources_chain
 from langchain.vectorstores.faiss import FAISS
@@ -84,7 +85,8 @@ class Bot:
                 hostname= os.environ["APITABLE_HOSTNAME"],
                 access_token = os.environ["APITABLE_ACCESS_TOKEN"],
                 datasheet_id = os.environ["APITABLE_DATASHEET_ID"],
-                view_id = os.environ["APITABLE_VIEW_ID"]
+                view_id = os.environ["APITABLE_VIEW_ID"],
+                verbose=True
             )
         else:
             self.loader = DirectoryLoader(
@@ -145,8 +147,27 @@ class Bot:
         # Retrieve the answer to the given question and return it
         input_documents = self.search_index.similarity_search(question, k=k)  
         self.similarity_search_results = input_documents
+        print("input_documents", input_documents)
         answer = self.chain.run(input_documents=input_documents, question=question)
         return answer
+    
+    def suggestions(self, content:str) -> list:
+        llm = ChatOpenAI(temperature=0)
+
+        prompt = """
+        $$$
+        {text}
+        $$$
+        If you were a user, please provide three questions you might ask based on the text above.
+        If the text writes in Chinese, reply it with Chinese.
+        Format requirement: separate each question with a newline character.
+        """
+
+        chain = LLMChain(llm=llm, prompt=PromptTemplate.from_template(prompt))
+        
+        result = chain.run(content)
+
+        return result.split("\n")
 
 
 SUPPORTED_TASKS = {
